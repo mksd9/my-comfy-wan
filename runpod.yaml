@@ -1,0 +1,10 @@
+name: "ComfyUI WAN Template"
+description: "High-end ComfyUI environment optimized for WAN video generation"
+image: "nobukoyo/comfyui-wan-runpod:latest"
+ports:
+  - "6006:6006"
+  - "8888:8888"
+env:
+  - name: "RUNPOD_VOLUME_PATH"
+    description: "Path to persistent storage (optional)"
+    required: false 
