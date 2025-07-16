@@ -1,11 +1,15 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Image (DISABLED - Use RunPod Build)
+
+# GitHub Actions disabled due to disk space limitations (14GB)
+# WANモデルファイル + PyTorch + CUDAで容量超過のため一時無効化
+# Use RunPod direct build instead: ./build-on-runpod.sh
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
-  pull_request:
-    branches: [ main ]
+  # push:
+  #   branches: [ main ]
+  #   tags: [ 'v*' ]
+  # pull_request:
+  #   branches: [ main ]
   workflow_dispatch:
 
 env:

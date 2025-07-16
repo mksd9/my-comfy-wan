@@ -38,7 +38,23 @@ WAN video generation に最適化された高性能 ComfyUI 環境の RunPod テ
 
 ## 📋 セットアップ
 
-### 1. 基本設定
+### 🔥 **RunPod上でのビルド（推奨）**
+**最新バージョン**を使用するため、RunPod上でのビルドを強く推奨します。
+
+#### 🚀 クイックビルド
+```bash
+# 1. RunPodインスタンス起動（Container Disk: 50GB+）
+# 2. Web Terminal で実行
+git clone https://github.com/mksd9/my-comfy-wan.git
+cd my-comfy-wan
+export DOCKER_PASSWORD='your_docker_hub_token'
+./build-on-runpod.sh
+```
+
+詳細な手順は **[Docker Build & Deploy ガイド](docs/DOCKER_BUILD_GUIDE.md)** を参照してください。
+
+### 📦 **事前ビルド済みイメージ使用**
+ビルドをスキップして、事前にビルドされたイメージを使用する場合：
 
 **Container Image**:
 ```
@@ -54,13 +70,15 @@ nobukoyo/comfyui-wan-runpod:latest
 - ComfyUI: `6006`
 - Jupyter Lab: `8888`
 
-### 2. 環境変数（オプション）
+**⚠️ 注意**: 事前ビルド済みイメージは更新頻度が低い場合があります。最新機能には上記のビルド方法を推奨します。
+
+### 3. 環境変数（オプション）
 
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `RUNPOD_VOLUME_PATH` | 永続ストレージパス | No |
 
-### 3. 永続ストレージ（オプション）
+### 4. 永続ストレージ（オプション）
 
 永続ストレージを使用する場合：
 

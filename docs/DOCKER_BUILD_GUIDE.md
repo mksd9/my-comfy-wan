@@ -9,77 +9,137 @@
 - DockerHub アカウントを持っていること
 - 十分なディスク容量（約20-22GB）があること
 
-### 🚀 **推奨: GitHub Actions自動ビルド**
-Macローカルでのストレージ不足を回避するため、GitHub Actionsでの自動ビルドを推奨します。
+### ⚠️ **GitHub Actions制限について**
+GitHub Actionsは**ディスク容量不足**（14GB制限）により、WANモデルファイル（数GB〜十数GB）+ PyTorch + CUDAの組み合わせでは**ビルドに失敗**します。
 
-#### セットアップ手順
-1. **GitHub Secrets設定**
-   - `DOCKER_USERNAME`: DockerHubユーザー名
-   - `DOCKER_PASSWORD`: DockerHubアクセストークン
+#### 制限の詳細
+- **GitHub Actions容量**: 約14GB
+- **必要容量**: 20GB以上（WANモデル + PyTorch + CUDA + BuildKit）
+- **結果**: `No space left on device`エラー
 
-2. **Docker Hubアクセストークン取得**
-   ```
-   1. Docker Hub → Account Settings → Security
-   2. "New Access Token"をクリック
-   3. Token Name: "github-actions-wan-build"
-   4. Permissions: "Read, Write, Delete"
-   5. 生成されたトークンをコピー
-   ```
+#### 現在の対応状況
+- GitHub Actionsワークフローは一時無効化済み
+- 手動実行のみ可能（ただし失敗する可能性が高い）
 
-3. **GitHub Secrets設定**
-   ```
-   1. GitHubリポジトリ → Settings → Secrets and variables → Actions
-   2. "New repository secret"をクリック
-   3. Name: DOCKER_USERNAME, Value: nobukoyo
-   4. Name: DOCKER_PASSWORD, Value: [上記で取得したトークン]
-   ```
+### 🔥 **RunPod上でのビルド（推奨方法）**
+**GitHub Actionsの制限を回避**し、RunPod上で直接ビルドする**最も確実な方法**です。
 
-4. **自動ビルド実行**
-   ```bash
-   # mainブランチにプッシュするだけで自動ビルド開始
-   git push origin main
-   
-   # または手動実行
-   # GitHub → Actions → "Build and Push Docker Image" → "Run workflow"
-   ```
+#### 🚀 クイックスタート
+```bash
+# 1. RunPodインスタンス起動後
+git clone https://github.com/mksd9/my-comfy-wan.git
+cd my-comfy-wan
 
-### 🔥 **RunPod上でのビルド（高速・大容量対応）**
-GitHub Actionsの制限を回避し、RunPod上で直接ビルドする方法です。
+# 2. 環境変数設定
+export DOCKER_PASSWORD='your_docker_hub_token'
 
-#### セットアップ手順
+# 3. ワンライナーで完了
+./build-on-runpod.sh
+```
+
+#### 📋 詳細手順
 1. **RunPodインスタンス起動**
    ```
    Template: RunPod PyTorch 2.0
    GPU: RTX 4090+ (推奨)
    Container Disk: 50GB+
+   Volume: 不要（ビルドのみ）
    ```
 
-2. **リポジトリクローン**
+2. **Web Terminal接続**
+   - RunPodダッシュボードで **Connect** → **Start Web Terminal**
+   - Jupyter Labが開いたら **Terminal** を選択
+
+3. **プロジェクトセットアップ**
    ```bash
-   git clone https://github.com/your-username/my-comfy-wan.git
+   # リポジトリクローン
+   git clone https://github.com/mksd9/my-comfy-wan.git
    cd my-comfy-wan
+   
+   # 権限設定
+   chmod +x build-on-runpod.sh
    ```
 
-3. **Docker Hub認証設定**
+4. **Docker Hub認証設定**
    ```bash
-   # Docker Hubトークンを環境変数に設定
+   # Docker Hubアクセストークンを環境変数に設定
    export DOCKER_PASSWORD='your_docker_hub_token'
+   
+   # 認証確認
+   echo "Docker password set: ${DOCKER_PASSWORD:0:10}..."
    ```
 
-4. **ビルド実行**
+5. **ビルド実行**
    ```bash
-   # 自動ビルドスクリプト実行
+   # 自動ビルドスクリプト実行（推奨）
    ./build-on-runpod.sh
    
    # 手動ビルドの場合
    docker buildx build --platform linux/amd64 -t nobukoyo/comfyui-wan-runpod:latest --push .
    ```
 
-#### メリット
-- **高速ビルド**: 高性能GPU環境での高速処理
-- **大容量対応**: 50GB+の十分なストレージ
-- **無制限**: GitHub Actionsの時間制限なし
-- **直接操作**: ビルドプロセスの直接監視・制御
+#### ✅ 期待される結果
+```
+🚀 RunPod Docker Build & Push Script
+📊 System Information:
+   GPU Info: NVIDIA GeForce RTX 4090, 24564
+🔧 Setting up Docker environment...
+🔑 Authenticating with Docker Hub...
+🏗️ Creating BuildKit builder...
+🔨 Building Docker image...
+[プログレスバー表示]
+✅ Build completed successfully!
+   Build time: 28m 15s
+   Image: nobukoyo/comfyui-wan-runpod:latest
+🎬 Ready to deploy on RunPod!
+```
+
+#### 🎯 メリット
+- **✅ 確実な成功**: 容量制限なし（50GB+）
+- **⚡ 高速処理**: 高性能GPU環境での最適化
+- **🔄 リアルタイム監視**: ビルドプロセスの直接確認
+- **💰 コスト効率**: 必要な時のみRunPod使用
+- **🚫 制限なし**: GitHub Actionsの時間・容量制限を回避
+
+#### ⚠️ 注意事項
+- **Docker Hubトークン**: 事前に取得・設定が必要
+- **RunPod費用**: ビルド時間分のGPU使用料金が発生
+- **ビルド時間**: 約25-35分（初回）、以降はキャッシュで高速化
+
+### 🔧 **代替CIサービス検討**
+
+GitHub Actionsの容量制限により、他のCIサービスでの実装を検討できます：
+
+#### 🌟 **AWS CodeBuild**
+- **容量制限**: 100GB～200GB
+- **料金**: ビルド時間単位（約$0.005/分）
+- **メリット**: 高容量、高性能、AWSとの統合
+- **デメリット**: 設定が複雑、AWS知識が必要
+
+#### 🌟 **Google Cloud Build**
+- **容量制限**: 100GB
+- **料金**: 1日120分無料、以降$0.003/分
+- **メリット**: 高速、自動スケーリング、GCPとの統合
+- **デメリット**: GCP知識が必要、設定が複雑
+
+#### 🌟 **Azure Container Instances**
+- **容量制限**: 20GB（カスタマイズ可能）
+- **料金**: 実行時間単位
+- **メリット**: Azureとの統合、柔軟性
+- **デメリット**: 設定が複雑、Azure知識が必要
+
+#### 🌟 **GitLab CI/CD**
+- **容量制限**: 25GB（プレミアム）
+- **料金**: 月額課金制
+- **メリット**: GitLabとの統合、設定がシンプル
+- **デメリット**: 月額費用、容量制限あり
+
+#### 📋 **推奨度**
+1. **RunPod直接ビルド**: ⭐⭐⭐⭐⭐ （最も確実）
+2. **Google Cloud Build**: ⭐⭐⭐⭐
+3. **AWS CodeBuild**: ⭐⭐⭐⭐
+4. **Azure Container Instances**: ⭐⭐⭐
+5. **GitLab CI/CD**: ⭐⭐⭐
 
 ### 🔧 **ローカルビルド手順（非推奨）**
 
