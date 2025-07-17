@@ -214,19 +214,55 @@ EOF
 
 success_msg ".bazelrcファイル作成完了"
 
-# Step 8: Docker Hub認証
-step_msg "8. Docker Hub認証"
+# Step 8: Dockerインストール・起動
+step_msg "8. Docker環境準備"
+if ! command -v docker >/dev/null 2>&1; then
+    info_msg "Dockerをインストール中..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    rm -f get-docker.sh
+    success_msg "Dockerインストール完了"
+else
+    info_msg "Docker already installed: $(docker --version)"
+fi
+
+# Docker daemon起動
+info_msg "Docker daemonを起動中..."
+if ! docker info >/dev/null 2>&1; then
+    dockerd --host=unix:///var/run/docker.sock --storage-driver=vfs --iptables=false --bridge=none &
+    DOCKER_PID=$!
+    
+    # Docker準備待ち
+    info_msg "Docker daemonの準備待ち..."
+    for i in {1..15}; do
+        if docker info >/dev/null 2>&1; then
+            success_msg "Docker daemon起動完了（PID: $DOCKER_PID）"
+            break
+        fi
+        echo "  待機中... ($i/15)"
+        sleep 2
+    done
+    
+    if ! docker info >/dev/null 2>&1; then
+        error_exit "Docker daemonの起動がタイムアウトしました"
+    fi
+else
+    success_msg "Docker daemon already running"
+fi
+
+# Step 9: Docker Hub認証
+step_msg "9. Docker Hub認証"
 info_msg "Docker Hubにログイン中..."
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
 success_msg "Docker Hub認証完了"
 
-# Step 9: 実行権限設定
-step_msg "9. スクリプトファイルの実行権限設定"
+# Step 10: 実行権限設定
+step_msg "10. スクリプトファイルの実行権限設定"
 chmod +x start.sh
 chmod +x scripts/download_models.sh
 success_msg "実行権限設定完了"
 
-# Step 10: 完了メッセージ
+# Step 11: 完了メッセージ
 echo ""
 echo "=================================================================="
 success_msg "🎉 Bazelセットアップ完了！"
