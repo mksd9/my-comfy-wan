@@ -7,15 +7,14 @@ module(
 
 # Bazel dependencies for OCI image building
 bazel_dep(name = "rules_oci", version = "1.7.5")
-bazel_dep(name = "rules_pkg", version = "0.10.1")
+bazel_dep(name = "rules_pkg", version = "1.0.1")
 
 # OCI image pulls
 oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 
-# Pull CUDA base image
+# Pull CUDA base image (tagのみ使用)
 oci.pull(
     name = "cuda_base",
-    digest = "sha256:b5d0e4a9e1c9b3e5d7e3f4d7c8b2a5e6f9d2c3e4d5e6f7a8b9c0d1e2f3a4b5c6",
     image = "nvidia/cuda:12.3.2-devel-ubuntu22.04",
 )
 

@@ -23,17 +23,16 @@ oci_register_toolchains(
 load("@rules_oci//oci:pull.bzl", "oci_pull")
 oci_pull(
     name = "cuda_base",
-    digest = "sha256:b5d0e4a9e1c9b3e5d7e3f4d7c8b2a5e6f9d2c3e4d5e6f7a8b9c0d1e2f3a4b5c6",
     image = "nvidia/cuda:12.3.2-devel-ubuntu22.04",
 )
 
 # rules_pkg for packaging files
 http_archive(
     name = "rules_pkg",
-    sha256 = "d250924a2ecc5176808fc4c25d5cf5e9e79e6346d79d5ab1c493e289e722d1d0",
+    sha256 = "d20c951960ed77cb7b341c2a59488534e494d5ad1d30c4818c736d57772a9fef",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.10.1/rules_pkg-0.10.1.tar.gz",
-        "https://github.com/bazelbuild/rules_pkg/releases/download/0.10.1/rules_pkg-0.10.1.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/1.0.1/rules_pkg-1.0.1.tar.gz",
+        "https://github.com/bazelbuild/rules_pkg/releases/download/1.0.1/rules_pkg-1.0.1.tar.gz",
     ],
 )
 
