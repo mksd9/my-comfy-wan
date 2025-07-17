@@ -24,6 +24,7 @@ load("@rules_oci//oci:pull.bzl", "oci_pull")
 oci_pull(
     name = "cuda_base",
     image = "index.docker.io/nvidia/cuda:12.3.2-devel-ubuntu22.04",
+    platforms = ["linux/amd64"],
 )
 
 # rules_pkg for packaging files
