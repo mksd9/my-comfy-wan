@@ -39,3 +39,20 @@ http_archive(
 
 load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 rules_pkg_dependencies()
+
+# Python support for root user
+http_archive(
+    name = "rules_python",
+    sha256 = "c68bdc4fbec25de5b5493b8819cfc877c4ea299c0dcb15c244c5a00208cde311",
+    strip_prefix = "rules_python-0.31.0",
+    url = "https://github.com/bazelbuild/rules_python/archive/refs/tags/0.31.0.tar.gz",
+)
+
+load("@rules_python//python:repositories.bzl", "py_repositories", "python_register_toolchains")
+py_repositories()
+
+python_register_toolchains(
+    name = "python3_11",
+    python_version = "3.11",
+    ignore_root_user_error = True,
+)
