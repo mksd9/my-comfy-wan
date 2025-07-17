@@ -5,10 +5,10 @@ WAN video generation に最適化された高性能 ComfyUI 環境の RunPod テ
 ## 📚 **ドキュメント**
 
 ### 🚀 **ビルド手順（推奨）**
-- **[📋 RUNPOD_BUILD_GUIDE.md](RUNPOD_BUILD_GUIDE.md)** - **自動化ビルド手順書**
+- **[📋 docs/RUNPOD_BUILD_GUIDE.md](docs/RUNPOD_BUILD_GUIDE.md)** - **自動化ビルド手順書**
 
 ### 🔧 **技術仕様**
-- **[🛠️ PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - プロジェクト構成・修正時参考
+- **[🛠️ docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md)** - プロジェクト構成・修正時参考
 
 ### 📖 **その他ドキュメント**
 - **[docs/COMPLETE_GUIDE.md](docs/COMPLETE_GUIDE.md)** - 旧統合ガイド（参考用）
@@ -55,7 +55,7 @@ export DOCKER_PASSWORD='your_docker_hub_token'
 ./setup-runpod-bazel.sh
 ```
 
-詳細な手順は **[RUNPOD_BUILD_GUIDE.md](RUNPOD_BUILD_GUIDE.md)** を参照してください。
+詳細な手順は **[docs/RUNPOD_BUILD_GUIDE.md](docs/RUNPOD_BUILD_GUIDE.md)** を参照してください。
 
 ### 📦 **事前ビルド済みイメージ使用**
 ビルドをスキップして、事前にビルドされたイメージを使用する場合：
