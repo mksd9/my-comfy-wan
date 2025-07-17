@@ -1,0 +1,67 @@
+# ComfyUI WAN RunPod Template - OCI Image Build Configuration
+
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_push", "oci_tarball")
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+
+# Package application files
+pkg_tar(
+    name = "app_files",
+    srcs = [
+        "start.sh",
+        "runpod.yaml",
+    ],
+    mode = "0755",
+    package_dir = "/",
+)
+
+# Package scripts
+pkg_tar(
+    name = "scripts",
+    srcs = [
+        "scripts/download_models.sh",
+    ],
+    mode = "0755",
+    package_dir = "/scripts",
+)
+
+# Build OCI image
+oci_image(
+    name = "comfyui_wan_image",
+    base = "@cuda_base",
+    cmd = ["/start.sh"],
+    entrypoint = ["/bin/bash"],
+    env = {
+        "DEBIAN_FRONTEND": "noninteractive",
+        "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "NVIDIA_VISIBLE_DEVICES": "all",
+        "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
+    },
+    tars = [
+        ":app_files",
+        ":scripts",
+    ],
+    workdir = "/ComfyUI",
+)
+
+# Create tarball for local testing
+oci_tarball(
+    name = "comfyui_wan_tarball",
+    image = ":comfyui_wan_image",
+    repo_tags = ["nobukoyo/comfyui-wan-runpod:latest"],
+)
+
+# Push to Docker Hub
+oci_push(
+    name = "push_custom_image",
+    image = ":comfyui_wan_image",
+    remote_tags = ["latest"],
+    repository = "index.docker.io/nobukoyo/comfyui-wan-runpod",
+)
+
+# Push with date tag
+oci_push(
+    name = "push_custom_image_dated",
+    image = ":comfyui_wan_image",
+    remote_tags = ["latest", "$(date +%Y%m%d)"],
+    repository = "index.docker.io/nobukoyo/comfyui-wan-runpod",
+)
