@@ -65,10 +65,10 @@ echo ""
 # Step 3: 必要なパッケージのインストール
 step_msg "3. 必要なパッケージのインストール"
 info_msg "システムパッケージを更新中..."
-sudo apt-get update -qq
+apt-get update -qq
 
 info_msg "必要なパッケージをインストール中..."
-sudo apt-get install -y -qq \
+apt-get install -y -qq \
     curl \
     gnupg \
     software-properties-common \
@@ -87,14 +87,14 @@ if command -v bazel >/dev/null 2>&1; then
 else
     info_msg "Bazel GPGキーを追加中..."
     curl -fsSL https://bazel.build/bazel-release.pub.gpg | gpg --dearmor > bazel.gpg
-    sudo mv bazel.gpg /etc/apt/trusted.gpg.d/
+    mv bazel.gpg /etc/apt/trusted.gpg.d/
     
     info_msg "Bazel APTリポジトリを追加中..."
-    echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" | sudo tee /etc/apt/sources.list.d/bazel.list
+    echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" > /etc/apt/sources.list.d/bazel.list
     
     info_msg "Bazelをインストール中..."
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq bazel
+    apt-get update -qq
+    apt-get install -y -qq bazel
     
     success_msg "Bazelインストール完了: $(bazel version --gnu_format | head -1)"
 fi
