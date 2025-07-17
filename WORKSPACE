@@ -23,7 +23,7 @@ oci_register_toolchains(
 load("@rules_oci//oci:pull.bzl", "oci_pull")
 oci_pull(
     name = "cuda_base",
-    image = "nvidia/cuda:12.3.2-devel-ubuntu22.04",
+    image = "index.docker.io/nvidia/cuda:12.3.2-devel-ubuntu22.04",
 )
 
 # rules_pkg for packaging files

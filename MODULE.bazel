@@ -15,7 +15,7 @@ oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 # Pull CUDA base image (tagのみ使用)
 oci.pull(
     name = "cuda_base",
-    image = "nvidia/cuda:12.3.2-devel-ubuntu22.04",
+    image = "index.docker.io/nvidia/cuda:12.3.2-devel-ubuntu22.04",
 )
 
 use_repo(oci, "cuda_base")
