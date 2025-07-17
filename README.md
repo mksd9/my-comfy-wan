@@ -4,15 +4,14 @@ WAN video generation に最適化された高性能 ComfyUI 環境の RunPod テ
 
 ## 📚 **ドキュメント**
 
-### 📖 **統合ガイド**
-- **[📋 COMPLETE_GUIDE.md](COMPLETE_GUIDE.md)** - **全機能を網羅した完全ガイド**（推奨）
+### 🚀 **ビルド手順（推奨）**
+- **[📋 RUNPOD_BUILD_GUIDE.md](RUNPOD_BUILD_GUIDE.md)** - **自動化ビルド手順書**
 
-### 🔧 **開発者向け**
-- **[Docker Build & Deploy ガイド](docs/DOCKER_BUILD_GUIDE.md)** - 完全なビルド工程とトラブルシューティング
-- **[Quick Reference](docs/QUICK_REFERENCE.md)** - 素早いデプロイ用コマンド集
+### 🔧 **技術仕様**
+- **[🛠️ PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - プロジェクト構成・修正時参考
 
-### 🎯 **ユーザー向け**
-- **[README.md](README.md)** - 基本的な使用方法（このファイル）
+### 📖 **その他ドキュメント**
+- **[COMPLETE_GUIDE.md](COMPLETE_GUIDE.md)** - 旧統合ガイド（参考用）
 
 ---
 
@@ -39,34 +38,24 @@ WAN video generation に最適化された高性能 ComfyUI 環境の RunPod テ
 - **事前インストール済みモデル** - ダウンロード不要で高速起動
 - **最新版Custom Nodes** - GitHubから自動取得
 
-## 📋 セットアップ
+## 📋 クイックセットアップ
 
-### 🔥 **RunPod上でのビルド（推奨）**
-**最新バージョン**を使用するため、RunPod上でのビルドを強く推奨します。
+### 🚀 **完全自動化ビルド（推奨）**
 
-#### 🎯 **新機能 v2.1 - 最適化されたビルド**
-- **⚡ 並列ダウンロード**: モデルファイルの同時取得で最大50%高速化
-- **🔄 エラーリトライ**: ネットワークエラー時の自動復旧機構
-- **💾 強化キャッシュ**: Registry cache による高速ビルド
-- **📊 進捗表示**: 詳細なビルド進捗とコスト見積もり
-- **🛠️ インタラクティブガイド**: 初心者向けステップバイステップセットアップ
-
-#### 🚀 クイックビルド
 ```bash
 # 1. RunPodインスタンス起動（Container Disk: 50GB+）
 # 2. Web Terminal で実行
 git clone https://github.com/mksd9/my-comfy-wan.git
 cd my-comfy-wan
 
-# Option A: インタラクティブガイド（初心者推奨）
-./setup-interactive.sh
-
-# Option B: 直接ビルド（上級者向け）
+# 3. 環境変数設定
 export DOCKER_PASSWORD='your_docker_hub_token'
-./build-on-runpod.sh
+
+# 4. ワンコマンド自動ビルド
+./setup-runpod-bazel.sh
 ```
 
-詳細な手順は **[Docker Build & Deploy ガイド](docs/DOCKER_BUILD_GUIDE.md)** を参照してください。
+詳細な手順は **[RUNPOD_BUILD_GUIDE.md](RUNPOD_BUILD_GUIDE.md)** を参照してください。
 
 ### 📦 **事前ビルド済みイメージ使用**
 ビルドをスキップして、事前にビルドされたイメージを使用する場合：
