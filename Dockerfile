@@ -4,6 +4,7 @@ FROM nvidia/cuda:12.3.2-runtime-ubuntu22.04 as base
 # Install system dependencies in a single layer
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        python3 \
         python3-pip \
         python3-dev \
         git \

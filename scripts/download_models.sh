@@ -49,7 +49,7 @@ download_with_retry() {
         info_msg "Found cached file: $filename"
         # Get remote file size for verification
         local remote_size=$(curl -sI "$url" | grep -i content-length | awk '{print $2}' | tr -d '\r' || echo "0")
-        local local_size=$(stat -c%s "$cache_path" 2>/dev/null || echo "0")
+        local local_size=$(stat --format=%s "$cache_path" 2>/dev/null || echo "0")
         
         if [ "$remote_size" -gt 0 ] && [ "$local_size" -eq "$remote_size" ]; then
             info_msg "Cache valid for $filename, copying..."
