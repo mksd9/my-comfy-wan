@@ -49,17 +49,36 @@ if ! command -v docker >/dev/null 2>&1; then
     if curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh; then
         success_msg "Dockerインストール完了"
         
-        # Start Docker service
+        # Start Docker daemon (RunPod compatible)
         echo "🚀 Dockerサービスを開始中..."
-        if service docker start; then
-            success_msg "Dockerサービス開始完了"
-        else
-            error_exit "Dockerサービスの開始に失敗しました"
-        fi
         
-        # Wait for Docker to be ready
-        echo "⏳ Dockerサービスの準備待ち..."
-        sleep 5
+        # Check if Docker daemon is already running
+        if ! docker info >/dev/null 2>&1; then
+            # Start Docker daemon in background for RunPod environment
+            echo "📡 Docker daemonをバックグラウンドで起動中..."
+            nohup dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2376 >/dev/null 2>&1 &
+            DOCKER_PID=$!
+            
+            # Wait for Docker to be ready with retry mechanism
+            echo "⏳ Docker daemonの準備待ち..."
+            DOCKER_READY=false
+            for i in {1..30}; do
+                if docker info >/dev/null 2>&1; then
+                    DOCKER_READY=true
+                    break
+                fi
+                echo "  待機中... ($i/30)"
+                sleep 2
+            done
+            
+            if [ "$DOCKER_READY" = true ]; then
+                success_msg "Docker daemon起動完了（PID: $DOCKER_PID）"
+            else
+                error_exit "Docker daemonの起動がタイムアウトしました"
+            fi
+        else
+            success_msg "Docker daemon already running"
+        fi
         
         # Verify Docker installation
         if docker --version; then
@@ -75,6 +94,33 @@ if ! command -v docker >/dev/null 2>&1; then
     fi
 else
     echo "✅ Docker already installed: $(docker --version)"
+    
+    # Check if Docker daemon is running
+    if ! docker info >/dev/null 2>&1; then
+        echo "🚀 既存のDockerでdaemonを起動中..."
+        nohup dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2376 >/dev/null 2>&1 &
+        DOCKER_PID=$!
+        
+        # Wait for Docker to be ready
+        echo "⏳ Docker daemonの準備待ち..."
+        DOCKER_READY=false
+        for i in {1..15}; do
+            if docker info >/dev/null 2>&1; then
+                DOCKER_READY=true
+                break
+            fi
+            echo "  待機中... ($i/15)"
+            sleep 2
+        done
+        
+        if [ "$DOCKER_READY" = true ]; then
+            success_msg "Docker daemon起動完了（PID: $DOCKER_PID）"
+        else
+            error_exit "Docker daemonの起動がタイムアウトしました"
+        fi
+    else
+        success_msg "Docker daemon already running"
+    fi
 fi
 
 # 必要なコマンドの存在チェック
