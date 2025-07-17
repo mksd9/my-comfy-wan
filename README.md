@@ -11,7 +11,7 @@ WAN video generation に最適化された高性能 ComfyUI 環境の RunPod テ
 - **[🛠️ PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - プロジェクト構成・修正時参考
 
 ### 📖 **その他ドキュメント**
-- **[COMPLETE_GUIDE.md](COMPLETE_GUIDE.md)** - 旧統合ガイド（参考用）
+- **[docs/COMPLETE_GUIDE.md](docs/COMPLETE_GUIDE.md)** - 旧統合ガイド（参考用）
 
 ---
 
