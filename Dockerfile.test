@@ -1,0 +1,19 @@
+FROM ubuntu:22.04
+
+# 簡単なテスト用のファイルを作成
+RUN apt-get update && apt-get install -y curl
+RUN dd if=/dev/zero of=/tmp/test_1gb.bin bs=1M count=1024
+RUN ls -lh /tmp/test_1gb.bin
+
+# 2つ目のファイルを作成
+RUN dd if=/dev/zero of=/tmp/test_2gb.bin bs=1M count=2048
+RUN ls -lh /tmp/test_2gb.bin
+
+# 3つ目のファイルを作成
+RUN dd if=/dev/zero of=/tmp/test_3gb.bin bs=1M count=3072
+RUN ls -lh /tmp/test_3gb.bin
+
+# 後で削除
+RUN rm -f /tmp/test_*.bin
+
+CMD ["echo", "Test completed"] 

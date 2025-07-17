@@ -1,3 +1,26 @@
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Custom nodes (excluded - users download latest)
+custom_nodes/
+
+# Models (excluded - users download via script)  
+models/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+
+# Logs and temp files
+*.log
+/tmp/
+/temp/
+build-metadata.json
+jupyter.log
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -6,6 +29,13 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # Python
 __pycache__/
@@ -29,47 +59,46 @@ wheels/
 .installed.cfg
 *.egg
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Virtual environments
+venv/
+env/
+ENV/
 
-# Environment variables
-.env
-.env.*
+# Docker volumes and data
+volumes/
+data/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# RunPod specific
+.runpod/
 
-# Temporary files
-*.tmp
-*.temp
-*.log
+# Cache directories
+.cache/
 *.cache
 
-# Custom nodes (downloaded in Dockerfile)
-custom_nodes/
+# Output directories (optional - comment out if you want to track outputs)
+output/
+outputs/
+generated/
 
-# Models (downloaded in Dockerfile)
-models/
-loras/
-workflows/
+# User specific configurations
+config.local.json
+settings.local.json
 
 # Test files
-Dockerfile.test
-*test*
-tests/
-test/
+test_outputs/
+test_images/
+test_videos/
 
-# Build artifacts
-*.tar
-*.tar.gz
-*.zip
+# Backup files
+*.bak
+*.backup
+*.old
 
-# Node.js (if any)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# HuggingFace cache
+.huggingface/
+
+# Git LFS (if used)
+*.lfs

@@ -34,9 +34,14 @@ RUN git clone https://github.com/comfyanonymous/ComfyUI.git /ComfyUI
 
 WORKDIR /ComfyUI
 
-# Install ComfyUI requirements and additional packages in one layer with cache
+# Install ComfyUI requirements with optimized caching
+# First install requirements.txt (changes less frequently)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt \
+    pip install -r requirements.txt
+
+# Install additional packages in separate layer for better caching
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install \
         opencv-python \
         pillow \
         numpy \
@@ -45,7 +50,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         matplotlib \
         segment-anything \
         ultralytics \
-        onnxruntime \
+        onnxruntime
+
+# Install Jupyter and data science packages in separate layer
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install \
         jupyterlab \
         notebook \
         ipywidgets \
@@ -60,43 +69,63 @@ FROM dependencies as models
 # Create model directories
 RUN mkdir -p /ComfyUI/models/{unet,clip,vae,loras}
 
-# Download WAN model files (optimized for size) with cache mount
+# Download WAN model files with parallel downloads and retry mechanism
+COPY scripts/download_models.sh /tmp/download_models.sh
 RUN --mount=type=cache,target=/tmp/model_cache \
-    echo "Downloading WAN model files..." && \
-    wget -q --show-progress -O /ComfyUI/models/unet/wan2.1-t2v-14b-Q4_K_S.gguf \
-        https://huggingface.co/city96/Wan2.1-T2V-14B-gguf/resolve/main/wan2.1-t2v-14b-Q4_K_S.gguf && \
-    wget -q --show-progress -O /ComfyUI/models/clip/umt5-xxl-encoder-Q5_K_S.gguf \
-        https://huggingface.co/city96/umt5-xxl-encoder-gguf/resolve/main/umt5-xxl-encoder-Q5_K_S.gguf && \
-    wget -q --show-progress -O /ComfyUI/models/vae/wan_2.1_vae.safetensors \
-        https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors && \
-    wget -q --show-progress -O /ComfyUI/models/loras/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors \
-        https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors
+    chmod +x /tmp/download_models.sh && \
+    /tmp/download_models.sh
 
 # Custom nodes stage
 FROM models as custom_nodes
 
-# Clone latest custom nodes from GitHub and install dependencies with cache
-RUN --mount=type=cache,target=/root/.cache/pip \
-    cd /ComfyUI/custom_nodes && \
-    echo "Cloning latest custom nodes..." && \
+# Clone latest custom nodes from GitHub with optimized caching
+WORKDIR /ComfyUI/custom_nodes
+
+# Clone custom nodes (separate layer for better caching)
+RUN echo "Cloning latest custom nodes..." && \
     git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git && \
     git clone --depth 1 https://github.com/city96/ComfyUI-GGUF.git && \
     git clone --depth 1 https://github.com/yolain/ComfyUI-Easy-Use.git comfyui-easy-use && \
     git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git comfyui-kjnodes && \
     git clone --depth 1 https://github.com/VrGamerDev/ComfyUI-VRGameDevGirl.git comfyui-vrgamedevgirl && \
-    git clone --depth 1 https://github.com/rgthree/rgthree-comfy.git && \
-    find . -name "requirements.txt" -exec pip install -r {} \; || true && \
+    git clone --depth 1 https://github.com/rgthree/rgthree-comfy.git
+
+# Install custom node dependencies (separate layer with cache)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    echo "Installing custom node dependencies..." && \
+    find . -name "requirements.txt" -exec pip install -r {} \; || true
+
+# Run custom node install scripts (separate layer)
+RUN echo "Running custom node install scripts..." && \
     find . -name "install.py" -exec python {} \; || true
+
+WORKDIR /ComfyUI
 
 # Final stage
 FROM custom_nodes as final
 
-# Copy scripts
+# Add metadata for better cache management
+LABEL maintainer="nobukoyo" \
+      version="2.1" \
+      description="ComfyUI WAN RunPod Template with optimized build" \
+      models="WAN-2.1-T2V-14B,UMT5-XXL" \
+      build-optimizations="parallel-downloads,enhanced-caching,error-recovery"
+
+# Copy scripts and configuration (separate layers for better caching)
 COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 COPY runpod.yaml /runpod.yaml
 
-# Make start script executable
-RUN chmod +x /start.sh
+# Set environment variables for optimization
+ENV PYTHONUNBUFFERED=1 \
+    HF_HOME="/tmp/huggingface" \
+    COMFYUI_MODEL_PATH="/ComfyUI/models" \
+    BUILDKIT_INLINE_CACHE=1
+
+# Health check for better container management
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5m --retries=3 \
+    CMD curl -f http://localhost:6006/ || exit 1
 
 EXPOSE 6006 8888
 CMD ["/start.sh"]

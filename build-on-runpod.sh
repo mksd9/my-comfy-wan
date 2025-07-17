@@ -40,6 +40,39 @@ fi
 # 必要なコマンドの存在チェック
 command -v docker >/dev/null 2>&1 || error_exit "Dockerがインストールされていません"
 command -v git >/dev/null 2>&1 || error_exit "gitがインストールされていません"
+command -v curl >/dev/null 2>&1 || error_exit "curlがインストールされていません"
+
+# ネットワーク接続チェック
+echo "🌐 Checking network connectivity..."
+NETWORK_RETRIES=3
+for i in $(seq 1 $NETWORK_RETRIES); do
+    if curl -s --max-time 10 https://hub.docker.com >/dev/null 2>&1; then
+        success_msg "Docker Hub接続確認"
+        break
+    else
+        if [ $i -eq $NETWORK_RETRIES ]; then
+            error_exit "Docker Hubへの接続に失敗しました。ネットワーク接続を確認してください"
+        else
+            warning_msg "Docker Hub接続確認失敗 ($i/$NETWORK_RETRIES)、再試行中..."
+            sleep 3
+        fi
+    fi
+done
+
+# GitHub接続確認
+for i in $(seq 1 $NETWORK_RETRIES); do
+    if curl -s --max-time 10 https://github.com >/dev/null 2>&1; then
+        success_msg "GitHub接続確認"
+        break
+    else
+        if [ $i -eq $NETWORK_RETRIES ]; then
+            warning_msg "GitHubへの接続に失敗しました。一部の機能が制限される可能性があります"
+        else
+            warning_msg "GitHub接続確認失敗 ($i/$NETWORK_RETRIES)、再試行中..."
+            sleep 3
+        fi
+    fi
+done
 
 # システム情報表示
 echo "📊 System Information:"
@@ -60,6 +93,14 @@ if [ "$AVAILABLE_SPACE" -lt "$MIN_SPACE" ]; then
     error_exit "ディスク容量不足です。最低20GB必要です。現在: $(df -h / | tail -1 | awk '{print $4}')"
 fi
 
+# Check if there's an existing build that can be resumed
+if docker buildx ls | grep -q "runpod-builder"; then
+    warning_msg "既存のビルダーが見つかりました。継続しますか？"
+    echo "既存ビルダーの情報:"
+    docker buildx ls | grep "runpod-builder" || true
+    echo ""
+fi
+
 # Docker環境準備
 echo "🔧 Setting up Docker environment..."
 docker system prune -f || warning_msg "Docker pruneでエラーが発生しましたが続行します"
@@ -75,51 +116,132 @@ fi
 
 # BuildKitビルダー作成
 echo "🏗️ Creating BuildKit builder..."
-if docker buildx create --name runpod-builder --driver docker-container --use 2>/dev/null || docker buildx use runpod-builder; then
-    success_msg "BuildKitビルダー準備完了"
-else
-    error_exit "BuildKitビルダーの作成に失敗しました"
+
+# Remove existing builder if it's in a bad state
+if docker buildx ls | grep -q "runpod-builder"; then
+    BUILDER_STATUS=$(docker buildx ls | grep "runpod-builder" | awk '{print $3}' || echo "unknown")
+    if [ "$BUILDER_STATUS" = "inactive" ] || [ "$BUILDER_STATUS" = "unknown" ]; then
+        warning_msg "既存ビルダーが不安定な状態です。再作成します..."
+        docker buildx rm runpod-builder >/dev/null 2>&1 || true
+    fi
 fi
 
-if docker buildx inspect --bootstrap; then
-    success_msg "BuildKitビルダー初期化完了"
+# Create or use existing builder
+if ! docker buildx ls | grep -q "runpod-builder"; then
+    echo "新しいビルダーを作成中..."
+    if docker buildx create --name runpod-builder \
+        --driver docker-container \
+        --driver-opt network=host \
+        --buildkitd-flags '--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host' \
+        --use; then
+        success_msg "BuildKitビルダー作成完了"
+    else
+        error_exit "BuildKitビルダーの作成に失敗しました"
+    fi
 else
-    error_exit "BuildKitビルダーの初期化に失敗しました"
+    echo "既存のビルダーを使用します..."
+    if docker buildx use runpod-builder; then
+        success_msg "既存ビルダーに切り替え完了"
+    else
+        error_exit "既存ビルダーへの切り替えに失敗しました"
+    fi
 fi
+
+# Bootstrap the builder with retry mechanism
+echo "ビルダーを初期化中..."
+BOOTSTRAP_RETRIES=3
+for i in $(seq 1 $BOOTSTRAP_RETRIES); do
+    if docker buildx inspect --bootstrap; then
+        success_msg "BuildKitビルダー初期化完了"
+        break
+    else
+        if [ $i -eq $BOOTSTRAP_RETRIES ]; then
+            error_exit "BuildKitビルダーの初期化に失敗しました（$BOOTSTRAP_RETRIES回試行）"
+        else
+            warning_msg "初期化失敗 ($i/$BOOTSTRAP_RETRIES)、再試行中..."
+            sleep 5
+        fi
+    fi
+done
 
 # ビルド実行
 echo "🔨 Building Docker image..."
+echo "推定完了時間: 25-35分（初回）、15-20分（キャッシュあり）"
+echo "RunPod推定コスト: $2-4（RTX 4090）"
+echo ""
+
 START_TIME=$(date +%s)
 
 # ビルドをトラップで監視
 trap 'echo -e "\n${RED}❌ ビルドが中断されました${NC}"; docker buildx rm runpod-builder >/dev/null 2>&1 || true; exit 1' INT TERM
 
+# Enhanced build with better cache strategy and error recovery
+echo "📊 ビルド設定:"
+echo "   プラットフォーム: linux/amd64"
+echo "   タグ: $FULL_IMAGE_NAME:latest, $FULL_IMAGE_NAME:$(date +%Y%m%d)"
+echo "   キャッシュ: Registry cache (Docker Hub)"
+echo "   進捗表示: 詳細モード"
+echo ""
+
+# Build with enhanced configuration
 if docker buildx build \
     --platform linux/amd64 \
     --tag "$FULL_IMAGE_NAME:latest" \
     --tag "$FULL_IMAGE_NAME:$(date +%Y%m%d)" \
     --push \
-    --cache-from type=gha \
-    --cache-to type=gha,mode=max \
+    --cache-from type=registry,ref="$FULL_IMAGE_NAME:cache" \
+    --cache-to type=registry,ref="$FULL_IMAGE_NAME:cache",mode=max \
     --progress=plain \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --metadata-file /tmp/build-metadata.json \
     .; then
     
     END_TIME=$(date +%s)
     BUILD_TIME=$((END_TIME - START_TIME))
     
     echo ""
-    success_msg "Build completed successfully!"
-    echo "   Build time: $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s"
-    echo "   Image: $FULL_IMAGE_NAME:latest"
-    echo "   Daily tag: $FULL_IMAGE_NAME:$(date +%Y%m%d)"
+    success_msg "🎉 Build completed successfully!"
+    echo ""
+    echo "📊 ビルド結果:"
+    echo "   ⏱️  ビルド時間: $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s"
+    echo "   🏷️  イメージ: $FULL_IMAGE_NAME:latest"
+    echo "   📅 日付タグ: $FULL_IMAGE_NAME:$(date +%Y%m%d)"
+    
+    # Extract build metadata if available
+    if [ -f "/tmp/build-metadata.json" ]; then
+        echo "   📁 メタデータ: /tmp/build-metadata.json に保存"
+    fi
+    
+    # Calculate estimated cost (approximate)
+    COST_PER_MINUTE=0.06  # Approximate cost for RTX 4090 on RunPod
+    ESTIMATED_COST=$(echo "scale=2; $BUILD_TIME * $COST_PER_MINUTE / 60" | bc 2>/dev/null || echo "計算不可")
+    echo "   💰 推定コスト: \$${ESTIMATED_COST}"
+    echo ""
     
     # Docker Hub確認
     echo "🔍 Verifying Docker Hub push..."
-    if docker manifest inspect "$FULL_IMAGE_NAME:latest" >/dev/null 2>&1; then
-        success_msg "Docker Hubへのプッシュ成功を確認"
-    else
-        warning_msg "Docker Hubプッシュの確認に失敗（ネットワーク遅延の可能性）"
-    fi
+    VERIFY_RETRIES=3
+    for i in $(seq 1 $VERIFY_RETRIES); do
+        if docker manifest inspect "$FULL_IMAGE_NAME:latest" >/dev/null 2>&1; then
+            success_msg "Docker Hubへのプッシュ成功を確認"
+            
+            # Get image size information
+            IMAGE_SIZE=$(docker manifest inspect "$FULL_IMAGE_NAME:latest" | grep -o '"size":[0-9]*' | cut -d':' -f2 | head -1)
+            if [ -n "$IMAGE_SIZE" ] && [ "$IMAGE_SIZE" -gt 0 ]; then
+                IMAGE_SIZE_MB=$((IMAGE_SIZE / 1024 / 1024))
+                echo "   📦 イメージサイズ: ${IMAGE_SIZE_MB}MB"
+            fi
+            break
+        else
+            if [ $i -eq $VERIFY_RETRIES ]; then
+                warning_msg "Docker Hubプッシュの確認に失敗（ネットワーク遅延の可能性）"
+                echo "   手動確認URL: https://hub.docker.com/r/$DOCKER_USER/$IMAGE_NAME"
+            else
+                echo "検証中... ($i/$VERIFY_RETRIES)"
+                sleep 10
+            fi
+        fi
+    done
     
 else
     error_exit "ビルドに失敗しました。ログを確認してください"
