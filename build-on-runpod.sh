@@ -37,8 +37,47 @@ if [ -z "$DOCKER_PASSWORD" ]; then
     error_exit "DOCKER_PASSWORD環境変数が設定されていません\n以下のコマンドで設定してください:\nexport DOCKER_PASSWORD='your_docker_hub_token'"
 fi
 
+# Dockerインストールチェック・自動インストール
+if ! command -v docker >/dev/null 2>&1; then
+    echo "🔧 Dockerがインストールされていません。自動インストールを開始します..."
+    
+    # Update package list
+    apt-get update -qq
+    
+    # Install Docker
+    echo "📦 Dockerをインストール中..."
+    if curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh; then
+        success_msg "Dockerインストール完了"
+        
+        # Start Docker service
+        echo "🚀 Dockerサービスを開始中..."
+        if service docker start; then
+            success_msg "Dockerサービス開始完了"
+        else
+            error_exit "Dockerサービスの開始に失敗しました"
+        fi
+        
+        # Wait for Docker to be ready
+        echo "⏳ Dockerサービスの準備待ち..."
+        sleep 5
+        
+        # Verify Docker installation
+        if docker --version; then
+            success_msg "Docker準備完了: $(docker --version)"
+        else
+            error_exit "Dockerの動作確認に失敗しました"
+        fi
+        
+        # Clean up install script
+        rm -f get-docker.sh
+    else
+        error_exit "Dockerのインストールに失敗しました"
+    fi
+else
+    echo "✅ Docker already installed: $(docker --version)"
+fi
+
 # 必要なコマンドの存在チェック
-command -v docker >/dev/null 2>&1 || error_exit "Dockerがインストールされていません"
 command -v git >/dev/null 2>&1 || error_exit "gitがインストールされていません"
 command -v curl >/dev/null 2>&1 || error_exit "curlがインストールされていません"
 
