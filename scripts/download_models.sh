@@ -7,7 +7,7 @@ MAX_RETRIES=3
 RETRY_DELAY=5
 DOWNLOAD_TIMEOUT=1800  # 30 minutes per file
 CACHE_DIR="/tmp/model_cache"
-MODELS_DIR="/ComfyUI/models"
+MODELS_DIR="./models"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -49,7 +49,7 @@ download_with_retry() {
         info_msg "Found cached file: $filename"
         # Get remote file size for verification
         local remote_size=$(curl -sI "$url" | grep -i content-length | awk '{print $2}' | tr -d '\r' || echo "0")
-        local local_size=$(stat --format=%s "$cache_path" 2>/dev/null || echo "0")
+        local local_size=$(stat -c%s "$cache_path" 2>/dev/null || stat -f%z "$cache_path" 2>/dev/null || echo "0")
         
         if [ "$remote_size" -gt 0 ] && [ "$local_size" -eq "$remote_size" ]; then
             info_msg "Cache valid for $filename, copying..."
@@ -114,7 +114,7 @@ main() {
     )
     
     # Check available disk space
-    local available_space=$(df --output=avail "$MODELS_DIR" | tail -1)
+    local available_space=$(df "$MODELS_DIR" | tail -1 | awk '{print $4}')
     local min_space=15000000  # 15GB in KB
     if [ "$available_space" -lt "$min_space" ]; then
         error_exit "Insufficient disk space. Required: 15GB, Available: $(df -h "$MODELS_DIR" | tail -1 | awk '{print $4}')"

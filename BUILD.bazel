@@ -24,7 +24,19 @@ pkg_tar(
     package_dir = "/scripts",
 )
 
-# Build OCI image
+# Package WAN models (pre-downloaded)
+pkg_tar(
+    name = "wan_models",
+    srcs = glob([
+        "models/unet/*.gguf",
+        "models/clip/*.gguf", 
+        "models/vae/*.safetensors",
+        "models/loras/*.safetensors",
+    ]),
+    package_dir = "/ComfyUI/models",
+)
+
+# Build OCI image with pre-downloaded models
 oci_image(
     name = "comfyui_wan_image",
     base = "@cuda_base",
@@ -35,10 +47,14 @@ oci_image(
         "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         "NVIDIA_VISIBLE_DEVICES": "all",
         "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
+        "PYTHONUNBUFFERED": "1",
+        "HF_HOME": "/tmp/huggingface",
+        "COMFYUI_MODEL_PATH": "/ComfyUI/models",
     },
     tars = [
         ":app_files",
         ":scripts",
+        ":wan_models",
     ],
     workdir = "/ComfyUI",
 )

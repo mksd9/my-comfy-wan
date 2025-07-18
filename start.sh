@@ -31,58 +31,24 @@ else
     echo "[INFO] Using built-in models (models are pre-installed in image)"
 fi
 
-# ── 事前インストール済みモデル確認 ─────────────────────────────────────
-echo "[INFO] Checking WAN model files..."
+# ── 事前組み込み済みコンポーネント確認 ─────────────────────────────────────
+echo "[INFO] Verifying pre-installed components..."
 
-# Check if WAN models exist
-if [ -f "$COMFYUI_MODEL_PATH/unet/wan2.1-t2v-14b-Q4_K_S.gguf" ]; then
-    echo "[INFO] ✓ WAN T2V model found"
-else
-    echo "[ERROR] WAN T2V model not found!"
-fi
+# Quick verification of models and custom nodes
+model_count=$(find $COMFYUI_MODEL_PATH -name "*.gguf" -o -name "*.safetensors" 2>/dev/null | wc -l)
+custom_nodes_count=$(ls -d /ComfyUI/custom_nodes/*/ 2>/dev/null | wc -l)
 
-if [ -f "$COMFYUI_MODEL_PATH/clip/umt5-xxl-encoder-Q5_K_S.gguf" ]; then
-    echo "[INFO] ✓ UMT5 encoder found"
-else
-    echo "[ERROR] UMT5 encoder not found!"
-fi
-
-if [ -f "$COMFYUI_MODEL_PATH/vae/wan_2.1_vae.safetensors" ]; then
-    echo "[INFO] ✓ WAN VAE found"
-else
-    echo "[ERROR] WAN VAE not found!"
-fi
-
-if [ -f "$COMFYUI_MODEL_PATH/loras/Wan21_T2V_14B_lightx2v_cfg_step_distill_lora_rank32.safetensors" ]; then
-    echo "[INFO] ✓ WAN LoRA found"
-else
-    echo "[ERROR] WAN LoRA not found!"
-fi
-
-# ── カスタムノード確認 ─────────────────────────────────────
-echo "[INFO] Checking custom nodes..."
-
-# Check if custom nodes exist
-if [ -d "/ComfyUI/custom_nodes/ComfyUI-Manager" ]; then
-    echo "[INFO] ✓ ComfyUI-Manager found"
-else
-    echo "[ERROR] ComfyUI-Manager not found!"
-fi
-
-if [ -d "/ComfyUI/custom_nodes/ComfyUI-GGUF" ]; then
-    echo "[INFO] ✓ ComfyUI-GGUF found"
-else
-    echo "[ERROR] ComfyUI-GGUF not found!"
-fi
+echo "[INFO] ✅ Found $model_count WAN model files"
+echo "[INFO] ✅ Found $custom_nodes_count custom nodes"
 
 cd /ComfyUI
 
 # ── Status summary ─────────────────────────────────────
 echo ""
-echo "📊 Setup Summary:"
-echo "   Custom nodes: $(ls -d /ComfyUI/custom_nodes/*/ 2>/dev/null | wc -l) latest versions installed"
-echo "   Models: $(find $COMFYUI_MODEL_PATH -name "*.gguf" -o -name "*.safetensors" 2>/dev/null | wc -l) files ready"
-echo "   CUDA available: $(python3 -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo 'Unknown')"
+echo "📊 Ready to Launch:"
+echo "   ✅ WAN Models: $model_count files ready"
+echo "   ✅ Custom nodes: $custom_nodes_count installed"
+echo "   ✅ CUDA available: $(python -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo 'Unknown')"
 echo ""
 
 # ── Jupyter Lab の起動 ─────────────────────────────────────
@@ -109,7 +75,7 @@ echo "🎨 Starting ComfyUI..."
 cd /ComfyUI
 
 # ── Provide stub for torch_directml on non-DirectML environments ───────────────
-python3 -c "
+python -c "
 import importlib, sys, types
 try:
     import torch

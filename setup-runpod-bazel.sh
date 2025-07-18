@@ -129,6 +129,36 @@ if [ -f "scripts/download_models.sh" ]; then
 fi
 success_msg "実行権限設定完了"
 
+# Step 7.5: WAN モデル事前ダウンロード
+step_msg "7.5. WAN モデル事前ダウンロード"
+echo ""
+echo -e "${YELLOW}⚠️ モデルダウンロードを開始します。完了まで15-25分かかります。${NC}"
+echo "   予想ダウンロードサイズ: 15-20GB"
+echo "   推定コスト: $1-2（RTX 4090）"
+echo ""
+read -p "モデルダウンロードを開始しますか？ (Y/n): " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
+    error_exit "モデルダウンロードがキャンセルされました。ビルドを中止します。"
+fi
+
+info_msg "WAN モデルダウンロードを開始中..."
+if ./scripts/download_models.sh; then
+    success_msg "WAN モデルダウンロード完了"
+    
+    # ダウンロード結果確認
+    model_count=$(find models -name "*.gguf" -o -name "*.safetensors" | wc -l)
+    total_size=$(du -sh models | cut -f1)
+    echo "   ✅ ダウンロード済みモデル: ${model_count} ファイル"
+    echo "   📦 総サイズ: ${total_size}"
+    
+    if [ "$model_count" -lt 4 ]; then
+        error_exit "ダウンロードされたモデルが不十分です（${model_count}/4）"
+    fi
+else
+    error_exit "モデルダウンロードに失敗しました"
+fi
+
 # Step 8: Bazelワークスペースクリーン
 step_msg "8. Bazelワークスペースクリーン"
 info_msg "Bazelキャッシュをクリーンアップ中..."
@@ -148,8 +178,9 @@ if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ ! -z $REPLY ]]; then
 fi
 
 info_msg "OCI イメージビルド・プッシュを開始中..."
-echo "推定完了時間: 25-35分（初回）、15-20分（キャッシュあり）"
-echo "RunPod推定コスト: $2-4（RTX 4090）"
+echo "推定完了時間: 10-15分（ベースイメージ + 全モデルファイル）"
+echo "RunPod推定コスト: $1-2（RTX 4090）"
+echo "注意: 25-30GBの完全自己完結イメージを作成します"
 echo ""
 
 START_TIME=$(date +%s)
